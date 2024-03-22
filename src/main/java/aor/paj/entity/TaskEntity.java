@@ -12,15 +12,16 @@ import java.time.LocalDate;
 @Table(name="task")
 @NamedQuery(name="Task.findTaskById", query="SELECT a FROM TaskEntity a WHERE a.id = :id")
 @NamedQuery(name="Task.findTaskByTitle", query="SELECT a FROM TaskEntity a WHERE a.title = :title")
-@NamedQuery(name="Task.findTaskByUser", query="SELECT a FROM TaskEntity a WHERE a.owner = :owner")
+@NamedQuery(name="Task.findTaskByUser", query="SELECT a FROM TaskEntity a WHERE a.owner = :owner AND a.isActive = true ORDER BY a.priority DESC, a.endDate ASC")
 @NamedQuery(name = "Task.findActiveTasks", query = "SELECT a FROM TaskEntity a WHERE a.isActive = true")
+@NamedQuery(name = "Task.findActiveTasksOrdered", query = "SELECT a FROM TaskEntity a WHERE a.isActive = true ORDER BY a.priority DESC, a.endDate ASC")
 @NamedQuery(name = "Task.findSoftDeletedTasks", query = "SELECT a FROM TaskEntity a WHERE a.isActive = false")
-@NamedQuery(name = "Task.findTasksByCategory", query = "SELECT t FROM TaskEntity t WHERE t.category = :category")
+@NamedQuery(name = "Task.findTasksByCategory", query = "SELECT t FROM TaskEntity t WHERE t.category = :category AND t.isActive = true ORDER BY t.priority DESC, t.endDate ASC")
 @NamedQuery(name = "Task.findTaskByCategoryName", query =" SELECT t FROM TaskEntity t JOIN t.category c WHERE c.title = :categoryName")
 @NamedQuery(name = "Task.findAllTasks", query = "SELECT t FROM TaskEntity t")
-@NamedQuery(name = "Task.findFilterTasks", query = "SELECT t FROM TaskEntity t WHERE t.category.idCategory = :category AND t.owner.username=:username")
-@NamedQuery(name="Task.findTaskByUserNameFilter", query="SELECT a FROM TaskEntity a WHERE a.owner.username = :username")
-@NamedQuery(name = "Task.findTasksByCategoryFilter", query = "SELECT t FROM TaskEntity t WHERE t.category.idCategory = :category")
+@NamedQuery(name = "Task.findFilterTasks", query = "SELECT t FROM TaskEntity t WHERE t.category.idCategory = :category AND t.owner.username=:username AND t.isActive = true ORDER BY t.priority DESC, t.endDate ASC")
+@NamedQuery(name="Task.findTaskByUserNameFilter", query="SELECT a FROM TaskEntity a WHERE a.owner.username = :username AND a.isActive = true ORDER BY a.priority DESC, a.endDate ASC")
+@NamedQuery(name = "Task.findTasksByCategoryFilter", query = "SELECT t FROM TaskEntity t WHERE t.category.idCategory = :category AND t.isActive = true ORDER BY t.priority DESC, t.endDate ASC")
 public class TaskEntity implements Serializable{
 
 	private static final long serialVersionUID = 1L;

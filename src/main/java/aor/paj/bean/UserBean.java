@@ -59,14 +59,15 @@ public class UserBean implements Serializable {
     }
 
 
-    public String loginDB(LoginDto user){
+    public User loginDB(LoginDto user){
         UserEntity userEntity = userDao.findUserByUsername(user.getUsername());
         user.setPassword(encryptHelper.encryptPassword(user.getPassword()));
         if (userEntity != null && userEntity.getIsActive()){
             if (userEntity.getPassword().equals(user.getPassword())){
                 String token = generateNewToken();
                 userEntity.setToken(token);
-                return token;
+                User loggedInUser = (convertUserEntityToUserLogged(userEntity));
+                return loggedInUser;
             }
         }
         return null;
@@ -195,6 +196,47 @@ public class UserBean implements Serializable {
 
     }
 
+    public User updateOwnUser(String token, User updatedUser) {
+        if (token == null || token.isEmpty()) {
+            return null;
+        }
+        UserEntity userEntity = userDao.findUserByToken(token);
+        if (userEntity == null) {
+            return null;
+        }
+
+        if (updatedUser.getEmail() != null ) {
+            userEntity.setEmail(updatedUser.getEmail());
+        }
+        if (updatedUser.getFirstName() != null) {
+            userEntity.setFirstName(updatedUser.getFirstName());
+        }
+        if (updatedUser.getLastName() != null) {
+            userEntity.setLastName(updatedUser.getLastName());
+        }
+        if (updatedUser.getPhoneNumber() != null) {
+            userEntity.setPhoneNumber(updatedUser.getPhoneNumber());
+        }
+        if (updatedUser.getImgURL() != null) {
+            userEntity.setImgURL(updatedUser.getImgURL());
+        }
+        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
+
+
+                String plainPassword = updatedUser.getPassword();
+                String hashedPassword = encryptHelper.encryptPassword(plainPassword);
+                updatedUser.setPassword(hashedPassword);
+
+
+
+            userEntity.setPassword(updatedUser.getPassword());
+        }
+
+        User u = convertUserEntityToDto(userEntity);
+        return u;
+
+    }
+
 
     /**
      * Update ao role do user, só disponivel para users do tipo product owner
@@ -254,6 +296,20 @@ public class UserBean implements Serializable {
             userDto.setLastName(userEntity.getLastName());
             userDto.setTypeOfUser(userEntity.getTypeOfUser());
             userDto.setActive(userEntity.getIsActive());
+            return userDto;
+        }
+        return null;
+    }
+
+    private User convertUserEntityToUserLogged (UserEntity userEntity){
+        if(userEntity != null) {
+            User userDto = new User();
+            userDto.setFirstName(userEntity.getFirstName());
+            userDto.setUsername(userEntity.getUsername());
+            userDto.setToken(userEntity.getToken());
+            userDto.setTypeOfUser(userEntity.getTypeOfUser());
+            userDto.setImgURL(userEntity.getImgURL());
+
             return userDto;
         }
         return null;
@@ -344,6 +400,20 @@ public class UserBean implements Serializable {
         UserEntity userEntity = userDao.findUserByEmail(email);
 
         return userEntity == null;
+    }
+
+    public boolean isEmailValidToUpdate(String email, String username) {
+        if (!isEmailFormatValid(email)) {
+            return false;
+        }
+
+        UserEntity userEntity = userDao.findUserByEmail(email);
+
+        if (userEntity == null || userEntity.getUsername().equals(username)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
 

@@ -36,6 +36,7 @@ public class UserService {
     @POST
     @Path("/addUserDB")
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @Transactional
     public Response addUserToDB(User user) {
 
@@ -73,8 +74,55 @@ public class UserService {
 
         return response;
     }
+    @PUT
+    @Path("/updateUser")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response newUpdateUser (@HeaderParam("token") String token, User updatedUser) {
+        Response response;
+
+        User user = userBean.getUserByToken(token);
+
+        boolean isEmailValid = userBean.isEmailValidToUpdate(updatedUser.getEmail(), user.getUsername());
+        boolean isImageValid = userBean.isImageUrlValid(updatedUser.getImgURL());
+        boolean isPhoneValid = userBean.isPhoneNumberValid(updatedUser.getPhoneNumber());
+
+
+
+        if (user != null) {
+
+            if (!isEmailValid) {
+                response = Response.status(422).entity("Invalid email").build();
+
+            } else if (!isImageValid) {
+                response = Response.status(422).entity("Image URL invalid").build();
+
+            } else if (!isPhoneValid) {
+                response = Response.status(422).entity("Invalid phone number").build();
+
+            } else if (userBean.updateOwnUser(token, updatedUser) != null) {
+
+
+                JsonObject jsonResponse = Json.createObjectBuilder()
+                        .add("firstName", updatedUser.getFirstName())
+                        .add("imgURL", updatedUser.getImgURL())
+                        .build();
+
+                response = Response.status(Response.Status.OK).entity(jsonResponse).build();
+
+            } else {
+                response = Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Failed to update user").build();
+            }
+
+        } else {
+            response = Response.status(Response.Status.UNAUTHORIZED).entity("Invalid credentials").build();
+        }
+
+        return response;
+    }
 
     @GET
+    @Path("/user")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public Response getUserByToken(@HeaderParam("token") String token) {
@@ -83,28 +131,8 @@ public class UserService {
             User user = userBean.getUserByToken(token);
 
             if (user != null) {
+
                 return Response.ok(user).build();
-            } else {
-
-                return Response.status(Response.Status.NOT_FOUND).build();
-            }
-        } else {
-
-            return Response.status(Response.Status.BAD_REQUEST).build();
-        }
-    }
-    @GET
-    @Path("/user")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    public Response getUserByToken(@HeaderParam("token") String token, @HeaderParam("username") String username) {
-        if (token != null) {
-
-            User user = userBean.getUserByToken(token);
-
-            if (user != null) {
-                User userFind = userBean.getUserByUsername(username);
-                return Response.ok(userFind).build();
             } else {
             return Response.status(Response.Status.NOT_FOUND).build();
             }
@@ -121,8 +149,11 @@ public class UserService {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response getAllUsers(@HeaderParam("token") String token) {
         List<User> allUsers = userBean.getAllUsers();
+        User userRequest = userBean.getUserByToken(token);
 
-        if (allUsers != null && !allUsers.isEmpty()) {
+        if (userRequest == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Unauthorized access").build();
+        } else if (allUsers != null && !allUsers.isEmpty()) {
             return Response.ok(allUsers).build();
         } else {
             return Response.status(Response.Status.NOT_FOUND).entity("No users found").build();
@@ -227,19 +258,27 @@ public class UserService {
     @Produces(MediaType.APPLICATION_JSON)
     public Response login(LoginDto user) {
 
-        String token = userBean.loginDB(user);
-        if (token != null) {
+        User loggedUser = userBean.loginDB(user);
+        if (loggedUser != null) {
             // Criar um objeto JSON contendo apenas o token
             JsonObject jsonResponse = Json.createObjectBuilder()
-                    .add("token", token)
+                    .add("firstName", loggedUser.getFirstName())
+                    .add("username", loggedUser.getUsername())
+                    .add("typeOfUser", loggedUser.getTypeOfUser())
+                    .add("imgURL", loggedUser.getImgURL())
+                    .add("token", loggedUser.getToken())
                     .build();
             // Retornar a resposta com o token
             return Response.status(200).entity(jsonResponse).build();
 
         } else {
-            return Response.status(403).entity("{\"error\": \"Somethin went wrong\"}").build();
+            return Response.status(403).entity("{\"error\": \"Something went wrong\"}").build();
         }
     }
+
+
+
+
 
     @PUT
     @Path("/updateProfile")
@@ -308,10 +347,8 @@ public class UserService {
 
         if (userRequest != null && (userRequest.getTypeOfUser()).equals("product_owner")) {
             if (updatedUser.getEmail() != null ) {
-                if (!userBean.isEmailValid(updatedUser.getEmail())) {
+                if (!userBean.isEmailValidToUpdate(updatedUser.getEmail(), username)) {
                     return Response.status(422).entity("Invalid email").build();
-                } else if(!userBean.emailAvailable(updatedUser.getEmail())) {
-                    return Response.status(422).entity("Email allready exists").build();
                 }else {
                     beModified.setEmail(updatedUser.getEmail());
                 }
@@ -384,6 +421,9 @@ public class UserService {
 
             } else if (!isPhoneValid) {
                 response = Response.status(422).entity("Invalid phone number").build();
+
+            } else if (user.getTypeOfUser().isEmpty() || user.getTypeOfUser() == null) {
+                response = Response.status(422).entity("Select a role to create an user").build();
 
             } else if (userBean.registerByPO(token,user)) {
                 response = Response.status(Response.Status.CREATED).entity("User registered successfully").build();

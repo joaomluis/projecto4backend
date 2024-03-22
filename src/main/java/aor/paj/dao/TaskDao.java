@@ -100,7 +100,7 @@ public class TaskDao extends AbstractDao<TaskEntity> {
 
 	public ArrayList<TaskEntity> findActiveTasks() {
 		try {
-			ArrayList<TaskEntity> taskEntities = (ArrayList<TaskEntity>) em.createNamedQuery("Task.findActiveTasks").getResultList();
+			ArrayList<TaskEntity> taskEntities = (ArrayList<TaskEntity>) em.createNamedQuery("Task.findActiveTasksOrdered").getResultList();
 			return taskEntities;
 		} catch (Exception e) {
 			return null;

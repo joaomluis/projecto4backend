@@ -264,6 +264,7 @@ public class TaskBean {
         Category category = new Category();
 
         category.setTitle(categoryEntity.getTitle());
+        category.setIdCategory(categoryEntity.getIdCategory());
 
 
         return category;
@@ -342,6 +343,66 @@ public class TaskBean {
             return activeTasks;
     }
 
+    public ArrayList<Task> getTasksByUserAndCategory (String token, String username, String categoryId) {
+        UserEntity userEntity = userDao.findUserByToken(token);
+
+        UserEntity userToFindTasks = userDao.findUserByUsername(username);
+        CategoryEntity categoryEntity = categoryDao.findCategoryById(Long.parseLong(categoryId));
+
+        ArrayList<TaskEntity> tasksByUserAndCategoryEntities = taskDao.findFilterTasks(userToFindTasks, categoryEntity);
+        ArrayList<Task> tasksByUserAndCategory = new ArrayList<>();
+        if (userEntity != null) {
+            if (tasksByUserAndCategoryEntities != null) {
+                if (userToFindTasks != null) {
+                    for (TaskEntity taskEntity : tasksByUserAndCategoryEntities) {
+                        Task task = convertTaskEntityToTask(taskEntity);
+                        tasksByUserAndCategory.add(task);
+                    }
+                }
+            }
+        }
+        return tasksByUserAndCategory;
+    }
+
+    public ArrayList<Task> getTasksByUser (String token, String username) {
+        UserEntity userEntity = userDao.findUserByToken(token);
+        UserEntity userToFindTasks = userDao.findUserByUsername(username);
+
+        ArrayList<TaskEntity> tasksByUserEntities = taskDao.findTasksByUser(userToFindTasks);
+        ArrayList<Task> tasksByUser = new ArrayList<>();
+        if (userEntity != null) {
+            if (tasksByUserEntities != null) {
+                if (userToFindTasks != null) {
+
+                    for (TaskEntity taskEntity : tasksByUserEntities) {
+                        Task task = convertTaskEntityToTask(taskEntity);
+                        tasksByUser.add(task);
+                    }
+                }
+            }
+        }
+        return tasksByUser;
+    }
+
+    public ArrayList<Task> getTasksByCategory (String token, String categoryId) {
+        UserEntity userEntity = userDao.findUserByToken(token);
+        CategoryEntity categoryEntity = categoryDao.findCategoryById(Long.parseLong(categoryId));
+
+        ArrayList<TaskEntity> tasksByCategoryEntities = taskDao.findTasksByCategory(categoryEntity);
+        ArrayList<Task> tasksByCategory = new ArrayList<>();
+        if (userEntity != null) {
+            if (tasksByCategoryEntities != null) {
+                if (categoryEntity != null) {
+                    for (TaskEntity taskEntity : tasksByCategoryEntities) {
+                        Task task = convertTaskEntityToTask(taskEntity);
+                        tasksByCategory.add(task);
+                    }
+                }
+            }
+        }
+        return tasksByCategory;
+    }
+
     public Task getTaskById(String token, String id) {
 
             UserEntity userEntity = userDao.findUserByToken(token);
@@ -360,7 +421,7 @@ public class TaskBean {
 
 
     public ArrayList<Task> getFilterTasks(String token, String username, long categoryId) {
-        ArrayList<Task> allTasks = new ArrayList<>();
+            ArrayList<Task> allTasks = new ArrayList<>();
         UserEntity userEntity = userDao.findUserByToken(token);
 
         if (userEntity == null || (!userEntity.getTypeOfUser().equals("product_owner") && !userEntity.getTypeOfUser().equals("scrum_master"))) {

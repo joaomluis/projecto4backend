@@ -80,6 +80,9 @@ public class TaskService {
         if (userBean.getUserByToken(token) == null) {
             response = Response.status(403).entity("Invalid token").build();
 
+        } else if (categoryId == null || categoryId.isEmpty()) {
+            response = Response.status(422).entity("Select a category").build();
+
         } else if (categoryDao.findCategoryById(Long.parseLong(categoryId)) == null) {
             response = Response.status(422).entity("Invalid category").build();
 
@@ -184,9 +187,35 @@ public class TaskService {
     }
 
     @GET
-    @Path("/getAllSoftDeletedTasks")
+    @Path("/all")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getsoftDeletedTasks(@HeaderParam("token") String token) {
+    public Response getAllTasks(@HeaderParam("token") String token, @QueryParam("username") String username, @QueryParam("category") String category) {
+        List<Task> tasks;
+
+        User user = userBean.getUserByToken(token);
+        if (user == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid token").build();
+        }
+
+        if (category != null && !category.isEmpty() && username != null && !username.isEmpty()) {
+            tasks = taskBean.getTasksByUserAndCategory(token, username, category);
+            return Response.ok(tasks).build();
+        } else if (username != null && !username.isEmpty()) {
+            tasks = taskBean.getTasksByUser(token, username);
+            return Response.ok(tasks).build();
+        } else if (category != null && !category.isEmpty()) {
+            tasks = taskBean.getTasksByCategory(token, category);
+            return Response.ok(tasks).build();
+        } else {
+            tasks = taskBean.getActiveTasks(token);
+            return Response.ok(tasks).build();
+        }
+    }
+
+    @GET
+    @Path("/getInactiveTasks")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getSoftDeletedTasks(@HeaderParam("token") String token) {
         Response response;
 
         ArrayList<Task> softDeletedTasks = taskBean.getSoftDeletedTasks();
@@ -211,7 +240,8 @@ public class TaskService {
     @DELETE
     @Path("/deleteTasksByUsername/{username}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response deleteAllTasksByUsername(@HeaderParam("token") String token, @PathParam("username") String username) {
+    public Response deleteAllTasksByUsername(@HeaderParam("token"
+    ) String token, @PathParam("username") String username) {
         Response response;
 
         if (userBean.getUserByToken(token) == null) {
@@ -258,7 +288,7 @@ public class TaskService {
     @Path("/getFilterTasks")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getUserTasksByCategory(@HeaderParam("token") String token, @QueryParam("username") String username,@QueryParam("category") long category) {
-        User user = userBean.getUserByToken(token);
+         User user = userBean.getUserByToken(token);
         if (user == null) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid token").build();
         }
@@ -269,15 +299,15 @@ public class TaskService {
 
         List<Task> userTasksByCategory = new ArrayList<>();
         if(username != null || category != 0){
-            userTasksByCategory = taskBean.getFilterTasks(token, username, category);
 
-            if (userTasksByCategory.isEmpty()) {
-                return Response.status(Response.Status.NOT_FOUND).entity("No tasks found for this user or category").build();
-            }
-        }else {
+            userTasksByCategory = taskBean.getFilterTasks(token, username, category);
             return Response.ok(userTasksByCategory).build();
+
+
+        } else {
+            return Response.status(Response.Status.NOT_FOUND).entity("No tasks found for this user or category").build();
         }
-        return Response.ok(userTasksByCategory).build();
+
     }
 
     @GET
